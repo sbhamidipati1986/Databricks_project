@@ -3,10 +3,6 @@
 
 # COMMAND ----------
 
-conf=bronze_setup('dev')
-
-# COMMAND ----------
-
 # MAGIC %md
 # MAGIC # **Data discovery**
 
@@ -19,23 +15,30 @@ df=spark.read.format('json').option('inferSchema','true').load(users_data)
 
 class create_bronze():
     
-    def __init__(self,env):
-        conf=bronze_setup(env)
+    def __init__(self,env='dev'):
+        conf=bronze_setup(env=env)
+        self.dbname=conf.db_name
+        self.catalogname=conf.catalog_name
+
     def create_catalog(self):
-        catalog_path=f"'{conf.path}project/dbs/dev/'"
-        spark.sql(f"CREATE CATALOG  IF NOT EXISTS {conf.catalog_name} managed location {catalog_path}")
+        catalog_path=f"'{conf.path}dbs/dev/'"
+        spark.sql(f"CREATE CATALOG  IF NOT EXISTS {self.catalogname} managed location {catalog_path}")
+
     def create_database(self):
-        spark.sql(f"CREATE DATABASE IF NOT EXISTS {conf.catalog_name}.{conf.db_name}")
+        spark.sql(f"CREATE DATABASE IF NOT EXISTS {self.catalogname}.{self.dbname}")
+
     def user_table(self):
-        spark.sql(f"""create table if not exists {conf.catalog_name}.{conf.db_name}.user_info\
+        spark.sql(f"""create table if not exists {self.catalogname}.{self.dbname}.user_info\
                   (user_id int,device_id int,mac_address string,registration_timestamp double,load_time timestamp,
                     source_file string)""")
+        
     def gym_info(self):
-        spark.sql(f"""create table if not exists {conf.catalog_name}.{conf.db_name}.gym_info\
-                  (mac_address string,gym int,login double,logout double,load_time timestamp,
+        spark.sql(f"""create table if not exists {self.catalogname}.{self.dbname}.gym_info\
+                  (mac_address string,gym int,login int,logout int,load_time timestamp,
                     source_file string)""")
+        
     def multiple_data(self):
-        spark.sql(f"""create table if not exists {conf.catalog_name}.{conf.db_name}.multiple_data\
+        spark.sql(f"""create table if not exists {self.catalogname}.{self.dbname}.multiple_data\
                   (key string,
                     offset bigint,
                     partition bigint,
@@ -44,19 +47,30 @@ class create_bronze():
                     value string,
                     load_time timestamp,
                     source_file string)""")
-    def run(self):
+        
+ 
+            
+    def run(self):    
         self.create_catalog()
         self.create_database()
         self.user_table()
         self.gym_info()
         self.multiple_data()
+    
+    def cleanup(self):
+        
+        spark.sql(f"""drop table if Exists  {self.catalogname}.{self.dbname}.multiple_data""")
+        spark.sql(f"drop table if Exists  {self.catalogname}.{self.dbname}.gym_info")
+        spark.sql(f"drop table if Exists  {self.catalogname}.{self.dbname}.user_info")
+        spark.sql(f"DROP DATABASE IF EXISTS {self.catalogname}.{self.dbname} Cascade")
+        spark.sql(f"DROP CATALOG IF EXISTS {self.catalogname} Cascade")
+
+
 
 
 # COMMAND ----------
 
-bronze_data=create_bronze('dev')
+
+bronze_data=create_bronze()
+
 bronze_data.run()
-
-# COMMAND ----------
-
-

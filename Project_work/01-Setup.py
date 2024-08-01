@@ -8,9 +8,9 @@
 # COMMAND ----------
 
 class bronze_setup():
-    def __init__(self,env):
+    def __init__(self,env='dev',layer='bronze'):
         self.path = spark.sql("describe external location raw_data").select('url').collect()[0][0]
         self.catalog_name=env
-        self.db_name='bronze'
+        self.db_name=layer
 
         
