@@ -8,20 +8,16 @@
 
 # COMMAND ----------
 
-users_data=conf.path+'landing_zone/raw/stream_data/'
-df=spark.read.format('json').option('inferSchema','true').load(users_data)
-
-# COMMAND ----------
-
 class create_bronze():
     
     def __init__(self,env='dev'):
-        conf=bronze_setup(env=env)
+        conf=database_setup(env=env,layer='bronze')
         self.dbname=conf.db_name
         self.catalogname=conf.catalog_name
+        self.path=conf.path
 
     def create_catalog(self):
-        catalog_path=f"'{conf.path}dbs/dev/'"
+        catalog_path=f"'{self.path}dbs/dev/{self.dbname}/'"
         spark.sql(f"CREATE CATALOG  IF NOT EXISTS {self.catalogname} managed location {catalog_path}")
 
     def create_database(self):
@@ -40,13 +36,16 @@ class create_bronze():
     def multiple_data(self):
         spark.sql(f"""create table if not exists {self.catalogname}.{self.dbname}.multiple_data\
                   (key string,
-                    offset bigint,
-                    partition bigint,
-                    timestamp double,
-                    topic string,
                     value string,
+                    topic string,
+                    partition bigint,
+                    offset bigint,
+                    timestamp double,
+                    date date, 
+                    week_part string, 
                     load_time timestamp,
-                    source_file string)""")
+                    source_file string)
+                    PARTITIONED BY (topic, week_part)""")
         
  
             
@@ -72,5 +71,4 @@ class create_bronze():
 
 
 bronze_data=create_bronze()
-
 bronze_data.run()
